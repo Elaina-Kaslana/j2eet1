@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html><head>
+    <title>Druid SQL Stat</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link href="Druid%20SQL%20Stat_files/bootstrap.min.css" rel="stylesheet">
+    <link href="Druid%20SQL%20Stat_files/style.css" type="text/css" rel="stylesheet">
+    <script type="text/javascript" src="Druid%20SQL%20Stat_files/jquery.min.js"></script>
+    <script src="Druid%20SQL%20Stat_files/lang.js" type="text/javascript" charset="utf8"></script>
+    <script src="Druid%20SQL%20Stat_files/common.js" type="text/javascript" charset="utf8"></script>
+    <script src="Druid%20SQL%20Stat_files/bootstrap.min.js" type="text/javascript" charset="utf8"></script>
+</head>
+<body><div style="float:right;margin-right:20px;">
+    <a class="langSelector" langnow="0">English</a> | <a class="langSelector" langnow="1">中文</a>
+</div>
+<div class="navbar navbar-fixed-top">
+    <div class="navbar-inner">
+        <div class="container">
+            <a href="https://github.com/alibaba/druid/wiki" target="_blank" class="brand lang" langkey="">Druid
+                Monitor</a>
+            <div class="nav-collapse">
+                <ul class="nav">
+                    <li><a href="http://localhost:8081/druid/index.html" class="lang" langkey="Index">首页</a></li>
+                    <li><a href="http://localhost:8081/druid/datasource.html" class="lang" langkey="DataSource">数据源</a></li>
+                    <li class="active"><a href="http://localhost:8081/druid/sql.html" class="lang" langkey="SQL">SQL监控</a></li>
+                    <li><a href="http://localhost:8081/druid/wall.html" class="lang" langkey="Wall">SQL防火墙</a></li>
+                    <li><a href="http://localhost:8081/druid/webapp.html" class="lang" langkey="WebApp">Web应用</a></li>
+                    <li><a href="http://localhost:8081/druid/weburi.html" class="lang" langkey="WebURI">URI监控</a></li>
+                    <li><a href="http://localhost:8081/druid/websession.html" class="lang" langkey="Web Session">Session监控</a></li>
+                    <li><a href="http://localhost:8081/druid/spring.html" class="lang" langkey="Spring">Spring监控</a></li>
+                    <li><a href="http://localhost:8081/druid/api.html" class="lang" langkey="JSON API">JSON API</a></li>
+                </ul>
+                <a langkey="ResetAll" class="btn btn-primary lang" href="javascript:druid.common.ajaxRequestForReset();">重置</a>
+                <a langkey="LogAndReset" class="btn btn-primary lang" href="javascript:druid.common.ajaxRequestForLogAndReset();">记录日志并重置</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="span12">
+            <h3>
+                SQL Stat
+                <a href="http://localhost:8081/druid/sql.json" target="_blank">View JSON API</a>
+                <span class="pull-right" style="font-size: 16px; margin-right: 20px;">
+          						<label langkey="RefreshPeriod" class="lang" style="display: inline;" for="refreshSecondsSelect">刷新时间</label>
+          						<select id="refreshSecondsSelect" class="refresh-seconds-select btn" style="width:80px;" onchange="javascript:druid.sql.refreshSeconds=parseInt(this.options[this.options.selectedIndex].value);">
+          							<option value="5" selected="selected">5s</option>
+          							<option value="10">10s</option>
+          							<option value="20">20s</option>
+          							<option value="30">30s</option>
+          							<option value="60">60s</option>
+          						</select>
+          						<a id="btnSuspendRefresh" langkey="SuspendRefresh" class="btn btn-primary lang" href="javascript:druid.sql.switchSuspendRefresh();">暂停刷新</a>
+          					</span>
+            </h3>
+            <table id="dataTable" class="table table-bordered table-striped responsive-utilities">
+                <thead>
+                <tr>
+                    <th>N</th>
+                    <th><a id="th-SQL">SQL▼</a></th>
+                    <th width="50"><a id="th-ExecuteCount" class="lang" langkey="ExecuteCount">执行数</a></th>
+                    <th width="50"><a id="th-TotalTime" class="lang" langkey="ExecuteTimeMillis">执行时间</a></th>
+                    <th class="langTitle" langkey="MaxTimespanDesc" title="最慢的执行耗时" width="50"><a id="th-MaxTimespan" class="lang" langkey="MaxTimespan">最慢</a></th>
+                    <th class="langTitle" langkey="InTransactionCountDesc" title="在事务中运行的次数" width="50"><a id="th-InTransactionCount" class="lang" langkey="InTransactionCount">事务执行</a></th>
+                    <th width="50"><a id="th-ErrorCount" class="lang" langkey="ErrorCount">错误数</a></th>
+                    <th width="50"><a id="th-EffectedRowCount" class="lang" langkey="JdbcUpdateCount">更新行数</a></th>
+                    <th width="50"><a id="th-FetchRowCount" class="lang" langkey="JdbcFetchRowCount">读取行数</a></th>
+                    <th width="50"><a id="th-RunningCount" class="lang" langkey="RunningCount">执行中</a></th>
+                    <th width="50"><a id="th-ConcurrentMax" class="lang" langkey="ConcurrentMax">最大并发</a></th>
+                    <th width="100" align="left"><span class="lang" langkey="ExecHisto">执行时间分布</span> <br>[
+                        <a id="th-Histogram[0]" class="langTitle" langkey="count1ms" title="0-1毫秒次数">-</a>
+                        <a id="th-Histogram[1]" class="langTitle" langkey="count10ms" title="1-10毫秒次数">-</a>
+                        <a id="th-Histogram[2]" class="langTitle" langkey="count100ms" title="10-100毫秒次数">-</a>
+                        <a id="th-Histogram[3]" class="langTitle" langkey="count1s" title="100-1000毫秒次数">-</a>
+                        <a id="th-Histogram[4]" class="langTitle" langkey="count10s" title="1-10秒次数">-</a>
+                        <a id="th-Histogram[5]" class="langTitle" langkey="count100s" title="10-100秒次数">-</a>
+                        <a id="th-Histogram[6]" class="langTitle" langkey="count1000s" title="100-1000秒次数">-</a>
+                        <a id="th-Histogram[7]" class="langTitle" langkey="countBg1000s" title="大于1000秒次数">-</a> ]
+                    </th>
+                    <th width="100" align="left"><span class="lang" langkey="ExecRsHisto">执行+RS时分布</span> <br>[
+                        <a id="th-ExecuteAndResultHoldTimeHistogram[0]" class="langTitle" langkey="count1ms" title="0-1毫秒次数">-</a>
+                        <a id="th-ExecuteAndResultHoldTimeHistogram[1]" class="langTitle" langkey="count10ms" title="1-10毫秒次数">-</a>
+                        <a id="th-ExecuteAndResultHoldTimeHistogram[2]" class="langTitle" langkey="count100ms" title="10-100毫秒次数">-</a>
+                        <a id="th-ExecuteAndResultHoldTimeHistogram[3]" class="langTitle" langkey="count1s" title="100-1000毫秒次数">-</a>
+                        <a id="th-ExecuteAndResultHoldTimeHistogram[4]" class="langTitle" langkey="count10s" title="1-10秒次数">-</a>
+                        <a id="th-ExecuteAndResultHoldTimeHistogram[5]" class="langTitle" langkey="count100s" title="10-100秒次数">-</a>
+                        <a id="th-ExecuteAndResultHoldTimeHistogram[6]" class="langTitle" langkey="count1000s" title="100-1000秒次数">-</a>
+                        <a id="th-ExecuteAndResultHoldTimeHistogram[7]" class="langTitle" langkey="countBg1000s" title="大于1000秒次数">-</a> ]
+                    </th>
+                    <th width="100" align="left"><span class="lang" langkey="FetchRowHisto">读取行分布</span> <br>[
+                        <a id="th-FetchRowCountHistogram[0]" class="langTitle" langkey="fetch0" title="读取行数为0">-</a>
+                        <a id="th-FetchRowCountHistogram[1]" class="langTitle" langkey="fetch9" title="读取行数1-9">-</a>
+                        <a id="th-FetchRowCountHistogram[2]" class="langTitle" langkey="fetch99" title="读取行数10-99">-</a>
+                        <a id="th-FetchRowCountHistogram[3]" class="langTitle" langkey="fetch999" title="读取行数100-999">-</a>
+                        <a id="th-FetchRowCountHistogram[4]" class="langTitle" langkey="fetch9999" title="读取行数1000-9999">-</a>
+                        <a id="th-FetchRowCountHistogram[5]" class="langTitle" langkey="fetch99999" title="读取行数大于9999">-</a> ]
+                    </th>
+                    <th width="100" align="left"><span class="lang" langkey="UpdateHisto">更新行分布</span> <br>[
+                        <a id="th-EffectedRowCountHistogram[0]" class="langTitle" langkey="update0" title="更新行数为0">-</a>
+                        <a id="th-EffectedRowCountHistogram[1]" class="langTitle" langkey="update9" title="更新行数1-9">-</a>
+                        <a id="th-EffectedRowCountHistogram[2]" class="langTitle" langkey="update99" title="更新行数10-99">-</a>
+                        <a id="th-EffectedRowCountHistogram[3]" class="langTitle" langkey="update999" title="更新行数100-999">-</a>
+                        <a id="th-EffectedRowCountHistogram[4]" class="langTitle" langkey="update9999" title="更新行数1000-9999">-</a>
+                        <a id="th-EffectedRowCountHistogram[5]" class="langTitle" langkey="update99999" title="更新行数大于9999">-</a> ]
+                    </th>
+                </tr>
+                <tr></tr><tr></tr><tr></tr><tr></tr><tr></tr></thead>
+                <tbody><tr class="striped"><td>1</td><td><a data-dismiss="alert" title="SELECT count(0) FROM oomall_product WHERE ((`goods_id` = ? AND `id` &lt;&gt; ?))" target="_blank" href="http://localhost:8081/druid/sql-detail.html?sqlId=35">SELECT count(0) FROM ooma...</a></td><td>2,000</td><td>3,214</td><td>27</td><td>2,000</td><td></td><td></td><td>2,000</td><td></td><td>7</td><td>[290,1699,11,0,0,0,0,0]</td><td>[229,1759,12,0,0,0,0,0]</td><td>[0,2000,0,0,0,0]</td><td>[2000,0,0,0,0,0]</td></tr><tr><td>2</td><td><a data-dismiss="alert" title="SELECT count(0) FROM oomall_onsale WHERE ((`product_id` = ? AND `begin_time` &lt;= ?))" target="_blank" href="http://localhost:8081/druid/sql-detail.html?sqlId=33">SELECT count(0) FROM ooma...</a></td><td>2,000</td><td>3,280</td><td><a target="_blank" style="color:red" href="http://localhost:8081/druid/sql-detail.html?sqlId=33">143</a></td><td>2,000</td><td></td><td></td><td>2,000</td><td></td><td>10</td><td>[459,1533,7,1,0,0,0,0]</td><td>[372,1620,7,1,0,0,0,0]</td><td>[0,2000,0,0,0,0]</td><td>[2000,0,0,0,0,0]</td></tr><tr class="striped"><td>3</td><td><a data-dismiss="alert" title="SELECT `id`, `product_id`, `price`, `begin_time`, `end_time`, `quantity`, `creator_id`, `creator_name`, `modifier_id`, `modifier_name`, `gmt_create`, `gmt_modified`
+FROM oomall_onsale
+WHERE ((`product_id` = ? and `begin_time` &lt;= ?))
+ORDER BY end_time DESC
+ LIMIT ? " target="_blank" href="http://localhost:8081/druid/sql-detail.html?sqlId=34">SELECT `id`, `product_id`...</a></td><td>1,999</td><td>3,340</td><td>64</td><td>1,999</td><td></td><td></td><td>1,999</td><td></td><td>7</td><td>[323,1659,17,0,0,0,0,0]</td><td>[144,1836,19,0,0,0,0,0]</td><td>[0,1999,0,0,0,0]</td><td>[1999,0,0,0,0,0]</td></tr><tr><td>4</td><td><a data-dismiss="alert" title="SELECT `id`, `goods_id`, `sku_sn`, `name`, `original_price`, `weight`, `image_url`, `barcode`, `unit`, `origin_place`, `creator_id`, `creator_name`, `modifier_id`, `modifier_name`, `gmt_create`, `gmt_modified`, `status`
+FROM oomall_product
+WHERE ((`goods_id` = ? and `id` &lt;&gt; ?))
+ LIMIT ? " target="_blank" href="http://localhost:8081/druid/sql-detail.html?sqlId=36">SELECT `id`, `goods_id`, ...</a></td><td>1,999</td><td>3,929</td><td><a target="_blank" style="color:red" href="http://localhost:8081/druid/sql-detail.html?sqlId=36">118</a></td><td>1,999</td><td></td><td></td><td>14,655</td><td></td><td>7</td><td>[19,1960,19,1,0,0,0,0]</td><td>[0,1972,26,1,0,0,0,0]</td><td>[0,1515,484,0,0,0]</td><td>[1999,0,0,0,0,0]</td></tr><tr class="striped"><td>5</td><td><a data-dismiss="alert" title="select `id`, `goods_id`, `sku_sn`, `name`, `original_price`, `weight`, `image_url`,  `barcode`, `unit`, `origin_place`, `creator_id`, `creator_name`, `modifier_id`,  `modifier_name`, `gmt_create`, `gmt_modified`, `status` from oomall_product where `id` = ?" target="_blank" href="http://localhost:8081/druid/sql-detail.html?sqlId=32">select `id`, `goods_id`, ...</a></td><td>2,000</td><td>3,117</td><td>34</td><td>2,000</td><td></td><td></td><td>2,000</td><td></td><td>8</td><td>[290,1704,6,0,0,0,0,0]</td><td>[62,1926,12,0,0,0,0,0]</td><td>[0,2000,0,0,0,0]</td><td>[2000,0,0,0,0,0]</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $.namespace("druid.sql");
+    druid.sql = function () {
+        var dataSourceId = druid.common.getUrlVar("dataSourceId");
+        return {
+            init: function () {
+                $("#dataTable th a").click(function (obj) {
+                    druid.common.setOrderBy(obj.target.id.substring(3))
+                })
+                druid.common.buildHead(2);
+                druid.common.ajaxuri = dataSourceId ? 'sql.json?dataSourceId=' + dataSourceId + '&' : 'sql.json?';
+                druid.common.handleCallback = druid.sql.handleAjaxResult;
+                druid.common.setOrderBy("SQL");
+                druid.sql.controlRefresh();
+            },
+            controlRefresh: function () {
+                var FIVE = 5;
+                if (!druid.sql.refreshSeconds) {
+                    druid.sql.refreshSeconds = FIVE;
+                }
+                if (!druid.sql.suspendedSeconds) {
+                    druid.sql.suspendedSeconds = 0;
+                }
+                druid.sql.suspendedSeconds += FIVE;
+                if (!druid.sql.disableAutoRefresh) {
+                    if (druid.sql.suspendedSeconds >= druid.sql.refreshSeconds) {
+                        druid.sql.suspendedSeconds = 0;
+                        druid.common.ajaxRequestForBasicInfo();
+                    }
+                }
+                setTimeout(druid.sql.controlRefresh, FIVE * 1000);
+            },
+            switchSuspendRefresh: function () {
+                druid.sql.disableAutoRefresh = !druid.sql.disableAutoRefresh;
+                if (druid.sql.disableAutoRefresh) {
+                    $("#btnSuspendRefresh").addClass("btn-warning").removeClass("btn-primary");
+                } else {
+                    $("#btnSuspendRefresh").addClass("btn-primary").removeClass("btn-warning");
+                }
+            },
+            disableAutoRefresh: false,
+            refreshSeconds: 5,
+            suspendedSeconds: 0,
+
+            handleAjaxResult: function (data) {
+                var sqlStatList = data.Content;
+                if (sqlStatList == null) return;
+
+                var sqlStatTable = document.getElementById("dataTable");
+                while (sqlStatTable.rows.length > 1) {
+                    sqlStatTable.deleteRow(1);
+                }
+
+                var html = "";
+                for (var i = 0; i < sqlStatList.length; i++) {
+                    var stat = sqlStatList[i], statSQL = stat.SQL;
+                    if (statSQL == null || statSQL == undefined) {
+                        continue;
+                    }
+                    var newStatSQL = statSQL.replace(/\"/g, "'").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    var newRow = sqlStatTable.insertRow(-1);
+                    html += "<tr>";
+                    html += "<td>" + (i + 1) + "</td>";
+                    html += "<td>" + '<a data-dismiss="alert"  title="' + newStatSQL + '" target="_blank" href="sql-detail.html?sqlId=' + stat.ID + '">' + druid.common.subSqlString(stat.SQL, 25) + '</a>' + "</td>";
+                    html += "<td>" + replace(stat.ExecuteCount) + "</td>";
+                    html += "<td>" + replace(stat.TotalTime) + "</td>";
+
+                    var lastSlowHtml = stat.MaxTimespan;
+                    if (stat.LastSlowParameters != null && stat.LastSlowParameters.length > 0) {
+                        lastSlowHtml = '<a target="_blank" style="color:red" href="sql-detail.html?sqlId=' + stat.ID + '">' + stat.MaxTimespan + '</a>';
+                    }
+                    html += "<td>" + replace(lastSlowHtml) + "</td>";
+                    html += "<td>" + replace(stat.InTransactionCount) + "</td>";
+                    html += "<td>" + replace(stat.ErrorCount) + "</td>";
+                    html += "<td>" + replace(stat.EffectedRowCount) + "</td>";
+                    html += "<td>" + replace(stat.FetchRowCount) + "</td>";
+                    html += "<td>" + replace(stat.RunningCount) + "</td>";
+                    html += "<td>" + replace(stat.ConcurrentMax) + "</td>";
+                    html += "<td>" + '[' + stat.Histogram + ']' + "</td>";
+                    html += "<td>" + '[' + stat.ExecuteAndResultHoldTimeHistogram + ']' + "</td>";
+                    html += "<td>" + '[' + stat.FetchRowCountHistogram + ']' + "</td>";
+                    html += "<td>" + '[' + stat.EffectedRowCountHistogram + ']' + "</td>";
+                    html += "</tr>";
+                }
+                $("#dataTable tbody").html(html);
+                druid.common.stripes();
+            }
+        }
+    }();
+
+    $(document).ready(function () {
+        druid.sql.init();
+    });
+</script>
+
+
+<footer class="footer">    		<div class="container"><a href="https://render.alipay.com/p/s/taobaonpm_click/druid_banner_click" target="new"><img src="Druid%20SQL%20Stat_files/A%20X0nsTIPxgucAAAAAAAAAAAAAARQnAQ.png"></a><br>	powered by <a href="https://github.com/alibaba/" target="_blank">Alibaba</a> &amp; sandzhang &amp; <a href="http://melin.iteye.com/" target="_blank">melin</a> &amp; <a href="https://github.com/shrekwang" target="_blank">shrek.wang</a>			</div> </footer></body></html>
